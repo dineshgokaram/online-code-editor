@@ -27,13 +27,9 @@ formatter = logging.Formatter('[%(asctime)s] %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
-if os.getenv("ENV") == "development":
-    import pytest
 # -------------------
 app = FastAPI()
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+
 # Enable CORS for all origins (Frontend compatibility)
 app.add_middleware(
     CORSMiddleware,
@@ -152,7 +148,9 @@ def run_java_locally(tmpdir: str, code: str, input_data: str):
         return "", f"Java exec error: {str(e)}"
 
 @app.post("/run")
-async def run_code(req: CodeRequest):
+async def run_code(payload: CodeRequest):
+
+# async def run_code(req: CodeRequest):
     logger.info(f"Code execution request for language={req.language}, input_length={len(req.input or '')}, code_size={len(req.code)}")
 
     code = req.code
@@ -263,7 +261,7 @@ async def run_code(req: CodeRequest):
         error = "Docker is not available and local execution only supports Python, Java, JavaScript, and C++."
         logger.info(f"Execution completed with output_length={len(output)}, error_length={len(error)}")
         return {"output": output, "error": error}
-
+        
     finally:
         shutil.rmtree(tmpdir)
 
