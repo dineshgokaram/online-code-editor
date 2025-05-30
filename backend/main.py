@@ -27,6 +27,8 @@ formatter = logging.Formatter('[%(asctime)s] %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 
+if os.getenv("ENV") == "development":
+    import pytest
 # -------------------
 app = FastAPI()
 @app.get("/")
