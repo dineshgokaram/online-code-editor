@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Online Code Editor</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    #controls {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      background: #20232a;
+      color: white;
+      flex-wrap: wrap;
+    }
+
+    #editor {
+      flex: 1;
+    }
+
+    #input-area {
+      display: none;
+      padding: 10px;
+      background: #1e1e1e;
+    }
+
+    #input-area label {
+      color: white;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    #input {
+      width: 100%;
+      height: 100px;
+      font-family: monospace;
+      background: #2e2e2e;
+      color: white;
+      border: none;
+      padding: 10px;
+    }
+
+    #terminal {
+      background: #1e1e1e;
+      padding: 10px;
+      color: white;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      background: #282c34;
+      padding: 10px;
+      border-radius: 5px;
+      min-height: 100px;
+      color: #abb2bf;
+    }
+
+    button, select, input[type="file"] {
+      padding: 5px 10px;
+    }
+
+    .error {
+      color: #ff6b6b;
+    }
+
+    .success {
+      color: #98c379;
+    }
+
+    .status {
+      color: #61dafb;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Controls -->
+  <div id="controls">
+    <select id="language">
+      <option value="python">Python</option>
+      <option value="cpp">C++</option>
+      <option value="javascript">JavaScript</option>
+      <option value="java">Java</option>
+    </select>
+
+    <select id="theme-toggle">
+      <option value="vs-dark" selected>Dark</option>
+      <option value="vs-light">Light</option>
+    </select>
+
+    <button id="run-btn">Run</button>
+    <button id="toggle-input">Toggle Input</button>
+    <button id="save-btn">💾 Save Code</button>
+    <button id="open-btn">📂 Open File</button>
+    <input type="file" id="file-input" accept=".txt,.py,.cpp,.js,.java" style="display: none;" />
+  </div>
+
+  <!-- Monaco Editor -->
+  <div id="editor"></div>
+
+  <!-- Input Area -->
+  <div id="input-area">
+    <label for="input">Standard Input:</label>
+    <textarea id="input" placeholder="Enter input here..."></textarea>
+  </div>
+
+  <!-- Terminal -->
+  <div id="terminal">
+    <label>Output:</label>
+    <pre id="output" class="status">💡 Ready to run your code...</pre>
+  </div>
+
+  <!-- Monaco Loader -->
+  <script src="https://unpkg.com/monaco-editor@0.45.0/min/vs/loader.js"></script>
+  <script>
+    let editor;
+    const templates = {
+      python: `print("Hello, World!")`,
+      cpp: `#include<iostream>\nusing namespace std;\nint main() {\n    cout << "Hello, World!";\n    return 0;\n}`,
+      javascript: `console.log("Hello, World!");`,
+      java: `public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello, World!");\n  }\n}`
+    };
+
+    require.config({ paths: { vs: "https://unpkg.com/monaco-editor@0.45.0/min/vs" } });
+
+    require(["vs/editor/editor.main"], function () {
+      editor = monaco.editor.create(document.getElementById("editor"), {
+        value: templates.python,
+        language: "python",
+        theme: "vs-dark",
+        automaticLayout: true,
+      });
+
+      // Language Change
+      document.getElementById("language").addEventListener("change", (e) => {
+        const lang = e.target.value;
+        monaco.editor.setModelLanguage(editor.getModel(), lang);
+        editor.setValue(templates[lang] || "");
+      });
+
+      // Theme Change
+      document.getElementById("theme-toggle").addEventListener("change", (e) => {
+        monaco.editor.setTheme(e.target.value);
+      });
+    });
+
+    // Toggle Input
+    document.getElementById("toggle-input").addEventListener("click", () => {
+      const inputArea = document.getElementById("input-area");
+      inputArea.style.display = inputArea.style.display === "none" ? "block" : "none";
+    });
+
+    // Run Code
+    document.getElementById("run-btn").addEventListener("click", async () => {
+      const code = editor.getValue();
+      const language = document.getElementById("language").value;
+      const input = document.getElementById("input").value;
+      const outputEl = document.getElementById("output");
+
+      outputEl.className = "status";
+      outputEl.textContent = "⏳ Running your code...";
+
+      const startTime = performance.now();
+
+      try {
+        const res = await fetch("http://localhost:8000/run", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, language, input })
+        });
+
+        const result = await res.json();
+        const execTime = ((performance.now() - startTime) / 1000).toFixed(2);
+
+        if (result.error) {
+          outputEl.className = "error";
+          outputEl.textContent = `❌ Error:\n${result.error}\n\n⏱️ Time: ${execTime}s`;
+        } else {
+          outputEl.className = "success";
+          outputEl.textContent = `✅ Output:\n${result.output}\n\n⏱️ Time: ${execTime}s`;
+        }
+      } catch (err) {
+        outputEl.className = "error";
+        outputEl.textContent = "❌ Server error or connection failed.";
+      }
+    });
+
+    // Save Code to File
+    document.getElementById("save-btn").addEventListener("click", () => {
+      const blob = new Blob([editor.getValue()], { type: "text/plain" });
+      const lang = document.getElementById("language").value;
+      const ext = lang === "cpp" ? ".cpp" : lang === "python" ? ".py" : lang === "javascript" ? ".js" : ".java";
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `code${ext}`;
+      a.click();
+    });
+
+    // Open File
+    document.getElementById("open-btn").addEventListener("click", () => {
+      document.getElementById("file-input").click();
+    });
+
+    document.getElementById("file-input").addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        editor.setValue(reader.result);
+      };
+      reader.readAsText(file);
+    });
+  </script>
+</body>
+</html>

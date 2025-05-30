@@ -1,0 +1,4 @@
+ext = lang_config["extension"]
+code_file = os.path.join(tempfile.gettempdir(), f"{uuid.uuid4()}{ext}")
+with open(code_file, "w") as f:
+    f.write(code_input.code)
