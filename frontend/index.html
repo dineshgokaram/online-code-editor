@@ -172,7 +172,7 @@
       const startTime = performance.now();
 
       try {
-        const res = await fetch("http://localhost:8000/run", {
+        const res = await fetch("https://online-code-editor-tree-main-backend.onrender.com/run", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code, language, input })
@@ -180,7 +180,7 @@
 
         const result = await res.json();
         const execTime = ((performance.now() - startTime) / 1000).toFixed(2);
-
+          
         if (result.error) {
           outputEl.className = "error";
           outputEl.textContent = `❌ Error:\n${result.error}\n\n⏱️ Time: ${execTime}s`;
