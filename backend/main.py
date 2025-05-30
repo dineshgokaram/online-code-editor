@@ -29,7 +29,9 @@ logger.addHandler(handler)
 
 # -------------------
 app = FastAPI()
-
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
 # Enable CORS for all origins (Frontend compatibility)
 app.add_middleware(
     CORSMiddleware,
