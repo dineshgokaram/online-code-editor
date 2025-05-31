@@ -15,7 +15,6 @@ An online code editor built using **React (frontend)** and **FastAPI (backend)**
 
 ### Frontend
 - React
-- Tailwind CSS (optional, if used)
 - Fetch API for backend integration
 - Vercel for deployment
 
